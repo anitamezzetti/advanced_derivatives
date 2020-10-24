@@ -72,7 +72,6 @@ for j = 1:length(T)
     %dt = dT(j);
     %dk = dK(j);
     
-    
     % Optimization
     [parameters,fval,~,~] = fminsearchcon (@(parameters)optimization_function...
         (C_actual,call_obs(:,j),dT(j),dK,parameters),para0,lb,up);
@@ -90,14 +89,14 @@ for j = 1:length(T)
         fprintf("The discrete system is not stable")
     end
     C_next = inv_A * C_actual;   
-    C_actual = C_next;      % update the currenr call price
-    result_C(:,j) = C_next; % update result_C
+    C_actual = C_next;              % update the currenr call price
+    result_C(:,j) = C_next;         % update result_C
     
 end
 
 % Prices for T=1 and T=1.5
 TT = [1, 1.5];
-C_models = zeros(lenk,length(TT)); % resulting C
+C_models = zeros(lenk,length(TT));  % resulting C
 
 for i = 1:length(TT)
     
@@ -112,7 +111,7 @@ end
 % Unique computed call prices matrix:
 % C_total is the resulting matrix of all call prices, at the beginning is
 % composed by only result_C, then we add the last two columns for TT
-% T_toal contains T and TT in the right order
+% T_total contains T and TT in the right order
 
 % C_total = result_C;
 % T_total = T;
@@ -224,8 +223,6 @@ Z = Z(1:end-1)';                            % skip last value
 diag_0 = [1, 1+2*Z, 1];                     % principal diagonal
 diag_up1 = [0, -Z];                         % upper diagonal
 diag_less1 = [-Z, 0];                       % lower digonal
-
-ones_diag_0 = ones(length(diag_0),1);       % vector of ones for the diag
 
 A = diag(diag_0, 0) + diag(diag_up1,1) + diag(diag_less1,-1);
 end

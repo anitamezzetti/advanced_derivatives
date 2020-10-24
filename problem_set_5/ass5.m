@@ -18,11 +18,11 @@ K = K(~isnan(K));           % delete NaN values
 T = data(1,:);              % Maturity dates
 T = T(~isnan(T));           % delete NaN values
 
-lenk = length(K);           % numbe of strikes
+lenk = length(K);           % number of strikes
 lenT = length(T);           % number of maturity dates
 
-dK = K(2)-K(1); % vector dk(i) = k(i+1)-k(i)  
-dT = [T(1),diff(T)]; % vector dT(i) = T(i+1)-T(i)  
+dK = K(2)-K(1);             % vector dk(i) = k(i+1)-k(i)  
+dT = [T(1),diff(T)];        % vector dT(i) = T(i+1)-T(i)  
 
 % sempifications:
 r = 0;                      % interst rate

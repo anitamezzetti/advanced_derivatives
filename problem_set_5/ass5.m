@@ -3,10 +3,11 @@
 
 clc
 clear all
+close all
 
 global lenk
 
-% Inizialization: 
+%% Inizialization: 
 
 data = xlsread('SX5E_Impliedvols.xlsx');  %load data
 
@@ -29,33 +30,31 @@ r = 0;                      % interst rate
 q = 0;                      % dividend
 
 vol = data(2:end,2:end);    % volatility data
-positive_vol = vol>0;       % true/false matrix: positive => 1, zero => 0
+positive_vol = vol > 0;     % true/false matrix: positive => 1, zero => 0
 
-vol_tilde = diag(K)*vol;    % vol_tilde(K,T) = K * vol(K,T) 
+vol_tilde = diag(K) * vol;  % vol_tilde(K,T) = K * vol(K,T) 
 
 % Call Prices: algorithm to extrapolate call prices using the BS formula:
 call_obs = zeros(lenk, lenT); % initialise the observed call prices matrix
 
+
 for i = 1:lenk
     for j = 1:lenT
-        if (positive_vol(i,j) >0) % otherwhise is not a stochastic process
+        if (positive_vol(i,j) > 0) % otherwhise is not a stochastic process
             % find the call price for maturity T(j) and strike K(i):
-            call_obs(i,j) = CallBS(S0,K(i),r,T(j),vol(i,j),q);
+            call_obs(i,j) = CallBS(S0, K(i), r, T(j), vol(i,j), q);
         end
     end
 end
 
-% Implied Volatility for the expirations in the spreadsheet:
+%% Implied Volatility for the expirations in the spreadsheet:
 
-C0 = max(S0-K,0);                   % initial call price for each K
-result_C = zeros(lenk, lenT);        % resulting C after the AH algorithm
-esimated_vol = zeros(size(vol));    % estimated volatility through interp. 
+C0 = max(S0-K, 0);                  % initial call price for each K
+result_C = zeros(lenk, lenT);       % resulting C after the AH algorithm
+esimated_vol = zeros(size(vol));    % estimated volatility through interp.
+C_actual = C0; 
 
-for j = 1:length(T)
-    
-    display(j)
-    
-    C_actual = C0;                              
+for j = 1:length(T)                           
     
     % find nonzero vol for all vol tilde of that maturity (one row for each T):
     pos_vol_T = find((vol_tilde(:,j)>0));
@@ -68,10 +67,7 @@ for j = 1:length(T)
     % sigma lower and upper bounds for the optimization method
     lb = zeros(1,length(para0));        % sigma > 0
     up = S0 * ones(1,length(para0));    % sigma < S0
-    
-    %dt = dT(j);
-    %dk = dK(j);
-    
+
     % Optimization
     [parameters,fval,~,~] = fminsearchcon (@(parameters)optimization_function...
         (C_actual,call_obs(:,j),dT(j),dK,parameters),para0,lb,up);
@@ -79,13 +75,13 @@ for j = 1:length(T)
     % Prediction (similar steps to optimization_function)
     pos_call_obs = find(call_obs(:,j)); % positions in which call_obs not zero
     
-    % estimated volatility
+    % Estimated Volatility
     interp_vol = volatility_interpolation (pos_call_obs, parameters);
     esimated_vol(:,j) = interp_vol;
     
     inv_A = pinv(build_A(interp_vol,dT(j),dK)); % A^(-1) = psudoinverse of A
     % inv_A>=0 (showed by Nabben) imples that the discrete system is stable
-    if inv_A<0
+    if inv_A < 0
         fprintf("The discrete system is not stable")
     end
     C_next = inv_A * C_actual;   
@@ -94,61 +90,38 @@ for j = 1:length(T)
     
 end
 
-% Prices for T=1 and T=1.5
-TT = [1, 1.5];
-C_models = zeros(lenk,length(TT));  % resulting C
-
-for i = 1:length(TT)
-    
-    % first time T exceeds TT(i) minus 1 => last time T lower that TT(i)
-    j = find(T>TT(i),1)-1;       %T_prime between T_j and T_{j+1}
-    dT = TT(i)-T(j);
-    sigma = esimated_vol(:,j);   % volatilities of that moment 
-    inv_A = pinv(build_A(sigma,dT,dK));
-    C_models(:,i) = inv_A * result_C(:,j);
-end
-
-% Unique computed call prices matrix:
-% C_total is the resulting matrix of all call prices, at the beginning is
-% composed by only result_C, then we add the last two columns for TT
-% T_total contains T and TT in the right order
-
-% C_total = result_C;
-% T_total = T;
-% for i=1:length(TT)
-%     
-%     % j is needed to understand in what point we add the column for TT(i)
-%     % call prices
-%     j = find(T>TT(i),1)-1;
-%     T_total = [T_total(1:j), TT(i), T_total(j+1:end)]; %add TT(i)
-%     C_total=[C_models_total(:,1:j),C_models(:,i),C_models_total(:,j+1:end)];
-% end
-
-
-% Implied Volatility: (from the computed call prices)
+%% Implied Volatility: (from the computed call prices)
 sigma0 = 0.02;                  % initial value, pr 0.05
-[IV,fval2] = implied_volBS(S0,K,r,T,q,result_C,sigma0);
+[IV, ~] = implied_volBS(S0, K, r, T, q, result_C, sigma0);
 
-% Volatility Surface Plot:
-
-%kk = repmat(K,1,lenT);
-%tt = repmat(T(2:end),lenk,1);
+%% Volatility Surface Plot:
 
 figure
-surf(T,K,IV)
+surf(T, K, IV)
 title('Volatility surface')
 xlabel('Strikes')
 ylabel('Maturities')
 zlabel('Volatility')
 
-% hold on
-% % Observed values:
-% [X,Y]=find(vol>0); 
-% Z=vol(vol>0); 
-% plot3(T(Y),K(X),Z,'.r','markersize',10)
-% hold off
 
-% Functions:
+%% Call Prices and Implied Volatility for T=1 and T=1.5
+TT = [1, 1.5];
+C_new_maturities = zeros(lenk, length(TT));  % resulting C
+
+for i = 1:length(TT)
+    
+    % first time T exceeds TT(i) minus 1 => last time T lower that TT(i)
+    j = find(T > TT(i), 1) - 1;       % T_prime between T_j and T_{j+1}
+    dT = TT(i) - T(j);
+    sigma = esimated_vol(:,j);        % volatilities of that moment 
+    inv_A = pinv(build_A(sigma, dT, dK));
+    C_new_maturities(:,i) = inv_A * result_C(:,j);
+end
+
+% Implied Volatility:
+[IV_new_mat, ~] = implied_volBS(S0, K, r, TT, q, C_new_maturities, sigma0);
+
+%% Functions:
 
 function f = optimization_function (C_actual,call_obs,dT,dK,para)
 % return the function to minimize
@@ -163,7 +136,7 @@ pos_call_obs = find(call_obs); % positions in which call_obs not zero
 % Volatility Interpolation:
 interpolated_vol = volatility_interpolation (pos_call_obs, para);
 
-% C(T(j+1)) = A^(-1) * C(T(j))
+% C(T(j+1)) = A^(-1) * C(T(j)u)
 inv_A = pinv(build_A(interpolated_vol,dT,dK)); % A^(-1) = psudoinverse of A
 
 % inv_A>=0 (showed by Nabben) imples that the discrete system is stable
@@ -178,7 +151,7 @@ end
 C_next = inv_A * C_actual;              % call price next step
 
 % function to minimize: 
-f=sum((C_next(pos_call_obs) - call_obs(pos_call_obs,1)).^2);
+f = sum((C_next(pos_call_obs) - call_obs(pos_call_obs,1)).^2);
 end
 
 function sigma = volatility_interpolation (positions, sigma_in)
@@ -226,7 +199,6 @@ diag_less1 = [-Z, 0];                       % lower digonal
 
 A = diag(diag_0, 0) + diag(diag_up1,1) + diag(diag_less1,-1);
 end
-
 
 
 

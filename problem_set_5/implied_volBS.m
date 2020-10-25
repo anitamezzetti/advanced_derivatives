@@ -1,5 +1,5 @@
 function [implied_vol,fval] = implied_volBS(S,K,r,T,q,C,sigma0)
-%This function finds the implied volatility (slide 8 lecture 2)
+%This function finds the implied volatility (slide .8 lecture 2)
 %The implied vol is the vol I have to insert in the BS model in order to
 %reproduce the observed price. Therefore it is the volatility for which the
 %difference between the two prices is zero.
@@ -26,4 +26,3 @@ if fval ~= zeros(size(fval))
 end
 
 end
-

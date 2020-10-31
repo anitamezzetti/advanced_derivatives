@@ -49,6 +49,11 @@ for i=3:-1:1
     
     ITM_prices = intrinsic_vals(ITM_prices_loc); % exercise values > 0
     discounted_cf = C(ITM_prices_loc, i+1)*exp(-r*dt);
+    
+    %X = [ones(length(ITM_prices)), ITM_prices, ITM_prices.^2,...
+    %    ITM_prices.^3];
+    
+    % see https://ch.mathworks.com/help/matlab/data_analysis/linear-regression.html
     reg = polyfit(ITM_prices, discounted_cf, 3);
     fitted = polyval(reg, ITM_prices); % continuation values
     
@@ -61,9 +66,7 @@ for i=3:-1:1
     ex_locs = find(compare_matrix(:, 1) > compare_matrix(:, 2));
     
     % Slide 12 and Slide 16 lecture 5
-    for j=1:4-j
-        C(ex_locs, i+j) = 0;
-    end
+    C(ex_locs, i+1:end) = 0;
     C(ex_locs, i) = compare_matrix(ex_locs, 1);
     
 end

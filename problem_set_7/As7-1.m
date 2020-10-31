@@ -7,7 +7,7 @@ t2 = 0.5;
 t3 = 0.75;
 t4 = T;
 
-ex_dates = [0, t1, t2, t3, t4];
+ex_dates = [t1, t2, t3, t4];
 dt = 0.25; % = delta t
 
 K = 98;
@@ -29,50 +29,45 @@ for i=1:N_paths
             vol_c*sqrt(dt)*normrnd(0,1));  
     end
 end
-
+S_mat(:,2:end)=S_0 * cumprod(1 + (r-q)*dt + sqrt(dt)*vol_c.*randn(N_paths,4),2);
 
 %% Process A
 A = zeros(N_paths, 4);
-A(:,1) = S_mat(:, 2) - K;
-A(:,2) = (S_mat(:, 2)+S_mat(:,3))/2 - K;
-A(:,3) = (S_mat(:, 2)+S_mat(:,3) + S_mat(:,4))/3 - K;
-A(:,4) = (S_mat(:, 2)+S_mat(:,3) + S_mat(:,4) + S_mat(:,5))/4 - K;
+A(:,1) = S_mat(:, 2);
+A(:,2) = (S_mat(:, 2)+S_mat(:,3))/2;
+A(:,3) = (S_mat(:, 2)+S_mat(:,3) + S_mat(:,4))/3;
+A(:,4) = (S_mat(:, 2)+S_mat(:,3) + S_mat(:,4) + S_mat(:,5))/4;
 
-
+I = max(A - K,0);
 %% Cash flow matrix
 C = zeros(N_paths, 4);
-C(:,4) = max(A(:,4), zeros(N_paths, 1));
+C(:,4) = max(A(:,4) - K, 0);
 
 for i=3:-1:1
-    intrinsic_vals = A(:, i); % exercise values
+    intrinsic_vals = I(:,i); % exercise values
     ITM_prices_loc = find(intrinsic_vals > 0);
     
-    ITM_prices = intrinsic_vals(ITM_prices_loc); % exercise values > 0
-    discounted_cf = C(ITM_prices_loc, i+1)*exp(-r*dt);
+    ITM_prices = intrinsic_vals(ITM_prices_loc);
     
-    %X = [ones(length(ITM_prices)), ITM_prices, ITM_prices.^2,...
-    %    ITM_prices.^3];
+    S_to_regress = S_mat(ITM_prices_loc, i+1); 
+    A_to_regress = A(ITM_prices_loc, i);
+    discounted_cf = sum(exp(-r*(ex_dates(i+1:end) - ex_dates(i))).*...
+        C(ITM_prices_loc, i+1:end),2);
+    X = [ones(length(ITM_prices),1), S_to_regress, S_to_regress.^2,...
+        S_to_regress.^3, A_to_regress, A_to_regress.^2, A_to_regress.^3];
     
-    % see https://ch.mathworks.com/help/matlab/data_analysis/linear-regression.html
-    reg = polyfit(ITM_prices, discounted_cf, 3);
-    fitted = polyval(reg, ITM_prices); % continuation values
-    
-    % Slide 11 lecture 5
-    compare_matrix = zeros(N_paths,2);
-    compare_matrix(ITM_prices_loc, 1) = ITM_prices;
-    compare_matrix(ITM_prices_loc, 2) = fitted;
+    fitted = X * ((X'*X)\(X'*discounted_cf)); % continuation values
     
     % locations where exercise is more advantageous than continue
-    ex_locs = find(compare_matrix(:, 1) > compare_matrix(:, 2));
+    ex_locs = find(ITM_prices > fitted);
     
     % Slide 12 and Slide 16 lecture 5
-    C(ex_locs, i+1:end) = 0;
-    C(ex_locs, i) = compare_matrix(ex_locs, 1);
-    
+    C(ITM_prices_loc(ex_locs), i+1:end) = 0;
+    C(ITM_prices_loc(ex_locs), i) = ITM_prices(ex_locs);
 end
 
 
-price_t0 = mean(C(:,1)*exp(-r*dt));
+price_t0 = mean(sum(C.*exp(-r*ex_dates),2));
 disp(price_t0);
 
 

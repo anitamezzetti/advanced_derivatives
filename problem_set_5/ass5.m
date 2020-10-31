@@ -119,7 +119,29 @@ for i = 1:length(TT)
 end
 
 % Implied Volatility:
+sigma0 = 0.02;  
 [IV_new_mat, ~] = implied_volBS(S0, K, r, TT, q, C_new_maturities, sigma0);
+
+
+C_models_total = result_C; 
+T_total = T;
+
+for i=1:length(TT)
+    
+    j = find(T_total>TT(i),1)-1;
+    
+    T_total = [T_total(1:j),TT(i),T_total(j+1:end)];
+    
+    C_models_total = [C_models_total(:,1:j),...
+        C_new_maturities(:,i),C_models_total(:,j+1:end)];
+    
+end
+
+sig0 = 0.2;
+[impv_total,fval3] = implied_volBS(S0,K,r,T_total,q,C_models_total,sig0);
+
+writematrix(impv_total,'impv_total.csv') 
+
 
 %% Functions:
 

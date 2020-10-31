@@ -12,7 +12,7 @@ dt = 0.25; % = delta t
 
 K = 98;
 r = 0;
-q = 0.02;
+q = 0.02; % dividend 
 
 vol_c = 0.23; % constant volatility
 
@@ -49,10 +49,15 @@ for i=3:-1:1
     
     ITM_prices = intrinsic_vals(ITM_prices_loc); % exercise values > 0
     discounted_cf = C(ITM_prices_loc, i+1)*exp(-r*dt);
-    reg = polyfit(ITM_prices, discounted_cf, 2);
+    
+    %X = [ones(length(ITM_prices)), ITM_prices, ITM_prices.^2,...
+    %    ITM_prices.^3];
+    
+    % see https://ch.mathworks.com/help/matlab/data_analysis/linear-regression.html
+    reg = polyfit(ITM_prices, discounted_cf, 3);
     fitted = polyval(reg, ITM_prices); % continuation values
     
-    % Slide 11 lecture 05
+    % Slide 11 lecture 5
     compare_matrix = zeros(N_paths,2);
     compare_matrix(ITM_prices_loc, 1) = ITM_prices;
     compare_matrix(ITM_prices_loc, 2) = fitted;
@@ -60,10 +65,8 @@ for i=3:-1:1
     % locations where exercise is more advantageous than continue
     ex_locs = find(compare_matrix(:, 1) > compare_matrix(:, 2));
     
-    % Slide 12 and Slide 16 lecture 05
-    for j=1:4-j
-        C(ex_locs, i+j) = 0;
-    end
+    % Slide 12 and Slide 16 lecture 5
+    C(ex_locs, i+1:end) = 0;
     C(ex_locs, i) = compare_matrix(ex_locs, 1);
     
 end

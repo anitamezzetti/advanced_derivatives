@@ -49,7 +49,10 @@ for t=1:4
     
     % experimenting with different H
     for i=1:length(Hs)
-        CF_H = Swaptions(S_t,Hs(i),D_t);
+        [~,dim2_S] = size(S_t);
+        H = Hs(i).*ones(dim2_S,1);
+        %disp(H)
+        CF_H = Swaptions(S_t,H,D_t);
         %disp(size(D_t))
         avg_swaption_prices(i) = mean(CF_H); 
     end
@@ -67,8 +70,8 @@ S = S(:,first_ex_date:end);
 SPs = S;
 S_t = S(:,end-4:end);
 D_t = cumprod(1./(1+tau*F(:,end-4:end,end-t)),2);
-CF_t = Swaptions(S_t,best_Hs(4),D_t);
-
+CF_t = Swaptions(S_t,best_Hs,D_t);
+fprintf("The swaption price is %.7f", mean(CF_t))
 
 % 
 % for t=1:4

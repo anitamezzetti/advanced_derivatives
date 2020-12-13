@@ -19,7 +19,7 @@ for t=2:N_x+1
         dW_k = (cos(theta(k))*dW_1 + sin(theta(k))*dW_2)*sqrt(dt);
         
         % slide 19 Lecture 10
-        rho_tk = cos(theta(k) - theta(t));
+        rho_tk = cos(theta(t) - theta(k));
         
         % slide 6 Lecture 11
         temp = temp + dt*rho_tk*sigma(k)*F(:,t-1,k)./(1+dt*F(:,t-1,k));
@@ -28,12 +28,13 @@ for t=2:N_x+1
            sigma(k)*dW_k);
     end
     %disp(F)
-    % compute value of underlying swap at T_s for an expiry at T_x
-    % Andersen algo
+    
+    % compute value of underlying swap (intrinsic val) at each ...
+    % exercise date
+    % Andersen algo: slide 9 Lecture 11
     P = zeros(N_sim, N_n);
     
     if (t > 1/dt)
-        %..
         P(:, :) = cumprod(1./(1+dt.*F(:,t,:)),3);
         P(:,1:t-1) = 0;
         

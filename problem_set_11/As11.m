@@ -72,6 +72,8 @@ S_t = S(:,end-4:end);
 D_t = cumprod(1./(1+tau*F(:,end-4:end,end-t)),2);
 CF_t = Swaptions(S_t,best_Hs,D_t);
 fprintf("The swaption price is %.7f", mean(CF_t))
+%The swaption price is 0.0053037
+
 
 % 
 % for t=1:4
